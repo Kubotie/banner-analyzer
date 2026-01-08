@@ -5,6 +5,7 @@ import {
   generateStrategyOptions,
   generatePlanningHooks,
 } from './insights';
+import { generateDummyPersonas } from './persona';
 
 /**
  * ダミーデータ生成用
@@ -170,11 +171,15 @@ export function generateFullInsights(
   aggregation: Aggregation,
   personaInfo?: string
 ) {
-  const marketInsights = generateMarketInsights(aggregation, extractions);
-  const strategyOptions = generateStrategyOptions(marketInsights, aggregation, personaInfo);
-  const planningHooks = generatePlanningHooks(strategyOptions, marketInsights);
+  // ダミーペルソナを生成（実際の実装では、Personaアプリの出力を受け取る）
+  const personas = generateDummyPersonas();
+  
+  const marketInsights = generateMarketInsights(aggregation, extractions, personas);
+  const strategyOptions = generateStrategyOptions(marketInsights, aggregation, personas);
+  const planningHooks = generatePlanningHooks(strategyOptions, marketInsights, personas);
 
   return {
+    personas,
     marketInsights,
     strategyOptions,
     planningHooks,

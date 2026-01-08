@@ -8,6 +8,7 @@ import AggregationView from '@/components/AggregationView';
 import MarketInsightView from '@/components/MarketInsightView';
 import StrategyOptionsView from '@/components/StrategyOptionsView';
 import PlanningHooksView from '@/components/PlanningHooksView';
+import PersonaView from '@/components/PersonaView';
 import { Extraction, Aggregation } from '@/types/schema';
 import {
   generateDummyExtraction,
@@ -34,9 +35,10 @@ export default function Home() {
     brand?: string;
   }>({});
   const [activeTab, setActiveTab] = useState<
-    'analysis' | 'aggregation' | 'insight' | 'strategy' | 'planning'
+    'analysis' | 'aggregation' | 'insight' | 'strategy' | 'planning' | 'persona'
   >('analysis');
   const [highlightedBannerIds, setHighlightedBannerIds] = useState<Set<string>>(new Set());
+  const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
 
   const handleUpload = useCallback(async (files: File[]) => {
     const newBanners: Banner[] = await Promise.all(
@@ -183,6 +185,16 @@ export default function Home() {
               >
                 企画フック (D)
               </button>
+              <button
+                className={`px-4 py-3 font-medium transition-colors whitespace-nowrap ${
+                  activeTab === 'persona'
+                    ? 'border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                onClick={() => setActiveTab('persona')}
+              >
+                ペルソナ
+              </button>
             </div>
 
             {/* タブコンテンツ */}
@@ -212,6 +224,23 @@ export default function Home() {
                       setHighlightedBannerIds(new Set(bannerIds))
                     }
                     highlightedBannerIds={highlightedBannerIds}
+                    personas={fullInsights.personas}
+                    onNavigateToPersona={(personaId) => {
+                      setActiveTab('persona');
+                      // スクロール位置を調整（必要に応じて）
+                    }}
+                  />
+                </div>
+              ) : activeTab === 'persona' && fullInsights ? (
+                <div className="h-full overflow-y-auto p-6">
+                  <h2 className="text-xl font-bold mb-4">ペルソナ</h2>
+                  <PersonaView
+                    personas={fullInsights.personas}
+                    marketInsights={fullInsights.marketInsights}
+                    onNavigateToInsight={(insightIndex) => {
+                      setSelectedInsightIndex(insightIndex);
+                      setActiveTab('insight');
+                    }}
                   />
                 </div>
               ) : activeTab === 'strategy' && fullInsights ? (

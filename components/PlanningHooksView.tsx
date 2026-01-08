@@ -37,13 +37,13 @@ export default function PlanningHooksView({ hooks }: PlanningHooksViewProps) {
                   key={hookIdx}
                   className={`border-l-4 pl-4 py-3 ${getOptionColor(hook.strategy_option)}`}
                 >
-                  {/* 問い（企画に使える） */}
+                  {/* 問い（企画に使える：ペルソナ × 市場前提を起点） */}
                   <div className="mb-2">
                     <div className="text-sm font-medium text-gray-600 mb-1">【企画に使える問い】</div>
                     <div className="text-base font-semibold text-gray-900">{h.question}</div>
                   </div>
 
-                  {/* 背景・文脈 */}
+                  {/* 背景・文脈（ペルソナ × 市場前提） */}
                   {h.context && (
                     <div>
                       <div className="text-sm font-medium text-gray-600 mb-1">【背景・文脈】</div>
@@ -51,9 +51,19 @@ export default function PlanningHooksView({ hooks }: PlanningHooksViewProps) {
                     </div>
                   )}
 
+                  {/* 関連するペルソナ */}
+                  {h.related_persona_ids && h.related_persona_ids.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-xs font-medium text-gray-500 mb-1">関連するペルソナ</div>
+                      <div className="text-xs text-gray-600">
+                        {h.related_persona_ids.length}件のペルソナと関連
+                      </div>
+                    </div>
+                  )}
+
                   {/* 関連する市場インサイト */}
                   {h.related_insights && h.related_insights.length > 0 && (
-                    <div>
+                    <div className="mt-2">
                       <div className="text-xs font-medium text-gray-500 mb-1">関連する市場インサイト</div>
                       <div className="text-xs text-gray-600">
                         {h.related_insights.length}件のインサイトと関連

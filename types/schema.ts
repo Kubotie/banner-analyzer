@@ -1,4 +1,26 @@
 /**
+ * Personaスキーマ定義
+ * ペルソナの不安・判断基準・行動パターン
+ */
+export interface Persona {
+  id: string; // ペルソナID
+  name: string; // ペルソナ名
+  concerns: string[]; // 不安・懸念事項
+  decision_criteria: string[]; // 判断基準
+  behavior_patterns: string[]; // 行動パターン
+  notes?: string; // 備考
+}
+
+/**
+ * Market InsightとPersonaの関連性
+ */
+export interface PersonaRelevance {
+  persona_id: string;
+  relevance_level: 'high' | 'medium' | 'low' | 'unknown'; // ◎◯△？
+  reasoning: string; // 判定理由（不安・判断基準・行動パターンとの一致から説明）
+}
+
+/**
  * Extraction (A) スキーマ定義
  * 推測しない／断定しない／根拠を必ず紐付ける
  */
@@ -114,10 +136,13 @@ export interface MarketInsight {
   taken_for_granted_risk: string; // 当たり前になっている可能性、外すとリスク（仮説）
   supporting_banners: string[]; // 根拠となるバナーID
   category: 'high_frequency' | 'low_frequency' | 'combination' | 'brand_difference';
+  // どのペルソナに強く効いているか
+  persona_relevance: PersonaRelevance[]; // ペルソナとの関連性
   // バナー/LP企画に使うための問い（Planning Hooks）
   planning_hooks: Array<{
-    question: string; // 企画に使える問い
+    question: string; // 企画に使える問い（ペルソナ × 市場前提を起点）
     context: string; // 背景・文脈
+    related_persona_ids?: string[]; // 関連するペルソナID（任意）
   }>;
 }
 
@@ -138,7 +163,12 @@ export interface StrategyOption {
   }; // あえて使わない要素
   potential_benefits: string[]; // 想定されるメリット（仮説）
   potential_risks: string[]; // 想定されるリスク（仮説）
-  target_persona?: string; // 想定ペルソナ（ある場合のみ）
+  // ペルソナ別のリスク感
+  persona_risk_assessment: Array<{
+    persona_id: string;
+    risk_level: 'low' | 'medium' | 'high'; // 同調/ずらす/外すのリスク感
+    reasoning: string; // リスク感の理由（仮説）
+  }>;
 }
 
 /**
@@ -148,8 +178,9 @@ export interface StrategyOption {
 export interface PlanningHook {
   strategy_option: 'A' | 'B' | 'C';
   hooks: Array<{
-    question: string; // バナー/LP企画に使える問い
-    context: string; // 背景・文脈（市場インサイトや競合の選択から）
+    question: string; // バナー/LP企画に使える問い（ペルソナ × 市場前提を起点）
+    context: string; // 背景・文脈（ペルソナ × 市場前提から）
+    related_persona_ids?: string[]; // 関連するペルソナID（任意）
     related_insights?: string[]; // 関連する市場インサイトのID（任意）
   }>;
 }

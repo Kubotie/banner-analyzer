@@ -1,17 +1,21 @@
 'use client';
 
-import { MarketInsight } from '@/types/schema';
+import { MarketInsight, Persona } from '@/types/schema';
 
 interface MarketInsightViewProps {
   insights: MarketInsight[];
   onHighlightBanners: (bannerIds: string[]) => void;
   highlightedBannerIds: Set<string>;
+  personas?: Persona[];
+  onNavigateToPersona?: (personaId: string) => void;
 }
 
 export default function MarketInsightView({
   insights,
   onHighlightBanners,
   highlightedBannerIds,
+  personas = [],
+  onNavigateToPersona,
 }: MarketInsightViewProps) {
   const getCategoryLabel = (category: MarketInsight['category']) => {
     switch (category) {
@@ -67,10 +71,51 @@ export default function MarketInsightView({
                 <span className="text-xs font-medium px-2 py-1 bg-white rounded">
                   {getCategoryLabel(insight.category)}
                 </span>
-                <span className="text-xs text-gray-600">
-                  {insight.supporting_banners.length}件のバナー
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600">
+                    {insight.supporting_banners.length}件のバナー
+                  </span>
+                </div>
               </div>
+
+              {/* どのペルソナに強く効いているか */}
+              {insight.persona_relevance && insight.persona_relevance.length > 0 && (
+                <div className="mb-4 p-3 bg-white rounded border">
+                  <div className="text-xs font-medium text-gray-600 mb-2">
+                    【どのペルソナに強く効いているか】
+                  </div>
+                  <div className="space-y-2">
+                    {insight.persona_relevance.map((pr, prIdx) => {
+                      const relevanceSymbol = pr.relevance_level === 'high' ? '◎' : pr.relevance_level === 'medium' ? '◯' : pr.relevance_level === 'low' ? '△' : '？';
+                      const relevanceColor = pr.relevance_level === 'high' ? 'text-green-600' : pr.relevance_level === 'medium' ? 'text-blue-600' : pr.relevance_level === 'low' ? 'text-yellow-600' : 'text-gray-400';
+                      const persona = personas.find((p) => p.id === pr.persona_id);
+                      
+                      return (
+                        <div
+                          key={prIdx}
+                          className={`flex items-start gap-2 p-2 rounded ${
+                            onNavigateToPersona ? 'cursor-pointer hover:bg-gray-50' : ''
+                          }`}
+                          onClick={() => onNavigateToPersona?.(pr.persona_id)}
+                        >
+                          <span className={`text-sm font-bold ${relevanceColor}`}>{relevanceSymbol}</span>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-800">
+                              {persona ? persona.name : `ペルソナID: ${pr.persona_id}`}
+                            </div>
+                            <div className="text-xs text-gray-600 mt-1">{pr.reasoning}</div>
+                            {onNavigateToPersona && (
+                              <div className="text-xs text-blue-600 mt-1 italic">
+                                クリックでペルソナ詳細を表示
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* 1. 想定されているペルソナ前提（人の不安・制約） */}
               <div className="mb-4">
