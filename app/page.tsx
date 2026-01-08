@@ -9,6 +9,7 @@ import MarketInsightView from '@/components/MarketInsightView';
 import StrategyOptionsView from '@/components/StrategyOptionsView';
 import PlanningHooksView from '@/components/PlanningHooksView';
 import PersonaView from '@/components/PersonaView';
+import PlanningSummaryView from '@/components/PlanningSummaryView';
 import { Extraction, Aggregation, Persona, MarketInsight, StrategyOption, PlanningHook } from '@/types/schema';
 import {
   generateDummyExtraction,
@@ -41,7 +42,7 @@ export default function Home() {
     brand?: string;
   }>({});
   const [activeTab, setActiveTab] = useState<
-    'analysis' | 'aggregation' | 'insight' | 'strategy' | 'planning' | 'persona'
+    'analysis' | 'aggregation' | 'insight' | 'strategy' | 'planning' | 'persona' | 'summary'
   >('analysis');
   const [highlightedBannerIds, setHighlightedBannerIds] = useState<Set<string>>(new Set());
   const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
@@ -272,6 +273,16 @@ export default function Home() {
               >
                 ペルソナ
               </button>
+              <button
+                className={`px-4 py-3 font-medium transition-colors whitespace-nowrap ${
+                  activeTab === 'summary'
+                    ? 'border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                onClick={() => setActiveTab('summary')}
+              >
+                企画サマリ
+              </button>
             </div>
 
             {/* タブコンテンツ */}
@@ -320,6 +331,13 @@ export default function Home() {
                     }}
                   />
                 </div>
+              ) : activeTab === 'summary' && fullInsights ? (
+                <PlanningSummaryView
+                  personas={fullInsights.personas}
+                  marketInsights={fullInsights.marketInsights}
+                  strategyOptions={fullInsights.strategyOptions}
+                  planningHooks={fullInsights.planningHooks}
+                />
               ) : activeTab === 'strategy' && fullInsights ? (
                 <div className="h-full overflow-y-auto p-6">
                   <h2 className="text-xl font-bold mb-4">戦略オプション (Strategy Options C2)</h2>
