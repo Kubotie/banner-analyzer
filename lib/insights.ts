@@ -412,52 +412,55 @@ export function generateMarketInsights(
 
   // ブランド別差分から構造を読み取る（最低3枚保証のため、必要に応じて追加）
   if (insights.length < 3 && aggregation.brand_differences) {
-  if (aggregation.brand_differences) {
     aggregation.brand_differences.forEach((bd) => {
       bd.differences.forEach((diff) => {
         const supportingBanners = extractions
           .filter((e) => e.brand === bd.brand)
           .map((e) => e.banner_id);
 
-          const insight: MarketInsight = {
-            // 1. 想定されているペルソナ前提（人の不安・制約）
-            persona_assumption: {
-              assumption: `${bd.brand}のターゲットペルソナは、他のブランドとは異なる前提・不安・制約を持っている可能性がある`,
-              evidence: `${bd.brand}のみの特徴`,
+        const insight: MarketInsight = {
+          // 1. 想定されているペルソナ前提（人の不安・制約）
+          persona_assumption: {
+            assumption: `${bd.brand}のターゲットペルソナは、他のブランドとは異なる前提・不安・制約を持っている可能性がある`,
+            evidence: `${bd.brand}のみの特徴`,
+          },
+          // 2. 観測された競合の選択（事実 + 根拠）
+          competitor_choice: {
+            choice: diff.detail,
+            evidence: `${bd.brand}のみの特徴`,
+          },
+          // 3. なぜその選択が合理的か（仮説）
+          rationality_hypothesis: `${bd.brand}は独自のペルソナ理解に基づき、異なる構成を選択している可能性がある`,
+          // 4. 当たり前になっている可能性（外すとリスク）
+          taken_for_granted_risk: `${bd.brand}の選択は、そのペルソナ層では当たり前になっている可能性があり、他のブランドと同じ構成では期待に応えられないリスクがある可能性がある`,
+          supporting_banners: supportingBanners,
+          category: 'brand_difference',
+          // どのペルソナに強く効いているか（後で設定）
+          persona_relevance: [],
+          // Planning Hooks: 3つ生成（必須）
+          planning_hooks: [
+            {
+              question: `${bd.brand}の選択を参考にする場合、各ペルソナとの違いをどう考慮するか？`,
+              context: `${bd.brand}は独自の構成を採用している。自社のペルソナごとに異なる調整が必要な可能性がある`,
+              related_persona_ids: personas.map((p) => p.id),
             },
-            // 2. 観測された競合の選択（事実 + 根拠）
-            competitor_choice: {
-              choice: diff.detail,
-              evidence: `${bd.brand}のみの特徴`,
+            {
+              question: `${bd.brand}と異なる選択をする場合、各ペルソナにどう説明するか？`,
+              context: `市場の一般的な選択と異なる場合、ペルソナごとに異なる説明が必要な可能性がある`,
+              related_persona_ids: personas.map((p) => p.id),
             },
-            // 3. なぜその選択が合理的か（仮説）
-            rationality_hypothesis: `${bd.brand}は独自のペルソナ理解に基づき、異なる構成を選択している可能性がある`,
-            // 4. 当たり前になっている可能性（外すとリスク）
-            taken_for_granted_risk: `${bd.brand}の選択は、そのペルソナ層では当たり前になっている可能性があり、他のブランドと同じ構成では期待に応えられないリスクがある可能性がある`,
-            supporting_banners: supportingBanners,
-            category: 'brand_difference',
-            // どのペルソナに強く効いているか（後で設定）
-            persona_relevance: [],
-            // バナー/LP企画に使うための問い（ペルソナ × 市場前提を起点）
-            planning_hooks: [
-              {
-                question: `${bd.brand}の選択を参考にする場合、各ペルソナとの違いをどう考慮するか？`,
-                context: `${bd.brand}は独自の構成を採用している。自社のペルソナごとに異なる調整が必要な可能性がある`,
-                related_persona_ids: personas.map((p) => p.id),
-              },
-              {
-                question: `${bd.brand}と異なる選択をする場合、各ペルソナにどう説明するか？`,
-                context: `市場の一般的な選択と異なる場合、ペルソナごとに異なる説明が必要な可能性がある`,
-                related_persona_ids: personas.map((p) => p.id),
-              },
-            ],
-          };
+            {
+              question: `${bd.brand}の選択を強調する場合、各ペルソナの判断基準のどこに焦点を当てるべきか？`,
+              context: `${bd.brand}は独自の構成を採用しているが、ペルソナごとに判断基準が異なる可能性がある`,
+              related_persona_ids: personas.map((p) => p.id),
+            },
+          ],
+        };
 
-          // ペルソナ関連性を判定
-          insight.persona_relevance = personas.length > 0 ? assessPersonaRelevance(insight, personas) : [];
+        // ペルソナ関連性を判定（より詳細な判断理由を生成）
+        insight.persona_relevance = personas.length > 0 ? assessPersonaRelevance(insight, personas) : [];
 
-          insights.push(insight);
-        });
+        insights.push(insight);
       });
     });
   }
