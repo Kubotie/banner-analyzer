@@ -36,6 +36,46 @@ export default function StrategyOptionsView({ options, personas = [] }: Strategy
               <div className="text-lg font-semibold">{option.title}</div>
             </div>
 
+            {/* 合理性/リスク評価 */}
+            {(option.rationality_assessment || option.risk_assessment) && (
+              <div className="mb-4 grid grid-cols-2 gap-4">
+                {option.rationality_assessment && (
+                  <div className="p-3 bg-white rounded border">
+                    <div className="text-xs font-medium text-gray-600 mb-1">合理性</div>
+                    <div className={`text-sm font-bold mb-1 ${
+                      option.rationality_assessment.level === 'high' ? 'text-green-600' :
+                      option.rationality_assessment.level === 'medium' ? 'text-yellow-600' :
+                      option.rationality_assessment.level === 'low' ? 'text-red-600' :
+                      'text-gray-400'
+                    }`}>
+                      {option.rationality_assessment.level === 'high' ? '高' :
+                       option.rationality_assessment.level === 'medium' ? '中' :
+                       option.rationality_assessment.level === 'low' ? '低' :
+                       '判断不可'}
+                    </div>
+                    <div className="text-xs text-gray-600">{option.rationality_assessment.reasoning}</div>
+                  </div>
+                )}
+                {option.risk_assessment && (
+                  <div className="p-3 bg-white rounded border">
+                    <div className="text-xs font-medium text-gray-600 mb-1">リスク</div>
+                    <div className={`text-sm font-bold mb-1 ${
+                      option.risk_assessment.level === 'high' ? 'text-red-600' :
+                      option.risk_assessment.level === 'medium' ? 'text-yellow-600' :
+                      option.risk_assessment.level === 'low' ? 'text-green-600' :
+                      'text-gray-400'
+                    }`}>
+                      {option.risk_assessment.level === 'high' ? '高' :
+                       option.risk_assessment.level === 'medium' ? '中' :
+                       option.risk_assessment.level === 'low' ? '低' :
+                       '判断不可'}
+                    </div>
+                    <div className="text-xs text-gray-600">{option.risk_assessment.reasoning}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 参考にしている競合要素 */}
             {(option.referenced_elements.components && option.referenced_elements.components.length > 0) ||
             (option.referenced_elements.appeal_axes && option.referenced_elements.appeal_axes.length > 0) ? (
@@ -108,10 +148,10 @@ export default function StrategyOptionsView({ options, personas = [] }: Strategy
               </div>
             )}
 
-            {/* ペルソナ別のリスク感（分岐表示） */}
+            {/* ペルソナ別のリスク感とOverlay（分岐表示） */}
             {option.persona_risk_assessment && option.persona_risk_assessment.length > 0 && (
               <div className="p-3 bg-white rounded border">
-                <div className="text-sm font-medium text-gray-700 mb-3">ペルソナ別のリスク感</div>
+                <div className="text-sm font-medium text-gray-700 mb-3">ペルソナ別のリスク感とOverlay</div>
                 <div className="space-y-3">
                   {option.persona_risk_assessment.map((assessment, idx) => {
                     const persona = personas.find((p) => p.id === assessment.persona_id);
@@ -128,9 +168,46 @@ export default function StrategyOptionsView({ options, personas = [] }: Strategy
                         ? '中リスク'
                         : '高リスク';
 
+                    // Persona Overlayの表示（◎◯△？）
+                    const getOverlaySymbol = (overlay: 'high' | 'medium' | 'low' | 'unknown') => {
+                      switch (overlay) {
+                        case 'high':
+                          return '◎';
+                        case 'medium':
+                          return '◯';
+                        case 'low':
+                          return '△';
+                        default:
+                          return '？';
+                      }
+                    };
+
+                    const getOverlayColor = (overlay: 'high' | 'medium' | 'low' | 'unknown') => {
+                      switch (overlay) {
+                        case 'high':
+                          return 'text-green-600';
+                        case 'medium':
+                          return 'text-blue-600';
+                        case 'low':
+                          return 'text-yellow-600';
+                        default:
+                          return 'text-gray-400';
+                      }
+                    };
+
+                    const overlaySymbol = assessment.persona_overlay
+                      ? getOverlaySymbol(assessment.persona_overlay)
+                      : '？';
+                    const overlayColor = assessment.persona_overlay
+                      ? getOverlayColor(assessment.persona_overlay)
+                      : 'text-gray-400';
+
                     return (
                       <div key={idx} className={`p-3 rounded border ${riskColor}`}>
                         <div className="flex items-center gap-2 mb-2">
+                          <span className={`text-lg font-bold ${overlayColor}`}>
+                            {overlaySymbol}
+                          </span>
                           <span className={`text-sm font-bold ${riskColor.includes('green') ? 'text-green-700' : riskColor.includes('yellow') ? 'text-yellow-700' : 'text-red-700'}`}>
                             {riskLabel}
                           </span>

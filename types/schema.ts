@@ -163,11 +163,21 @@ export interface StrategyOption {
   }; // あえて使わない要素
   potential_benefits: string[]; // 想定されるメリット（仮説）
   potential_risks: string[]; // 想定されるリスク（仮説）
-  // ペルソナ別のリスク感
+  // 戦略の合理性/リスク評価（Persona Overlayから算出）
+  rationality_assessment: {
+    level: 'high' | 'medium' | 'low' | 'unknown'; // 合理性の高さ
+    reasoning: string; // 合理性の理由（仮説）
+  };
+  risk_assessment: {
+    level: 'high' | 'medium' | 'low' | 'unknown'; // リスクの高さ
+    reasoning: string; // リスクの理由（仮説）
+  };
+  // ペルソナ別のリスク感（Persona Overlayを含む）
   persona_risk_assessment: Array<{
     persona_id: string;
     risk_level: 'low' | 'medium' | 'high'; // 同調/ずらす/外すのリスク感
     reasoning: string; // リスク感の理由（仮説）
+    persona_overlay: 'high' | 'medium' | 'low' | 'unknown'; // ◎◯△？に対応
   }>;
 }
 
