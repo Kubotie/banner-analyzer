@@ -1,12 +1,13 @@
 'use client';
 
-import { StrategyOption } from '@/types/schema';
+import { StrategyOption, Persona } from '@/types/schema';
 
 interface StrategyOptionsViewProps {
   options: StrategyOption[];
+  personas?: Persona[];
 }
 
-export default function StrategyOptionsView({ options }: StrategyOptionsViewProps) {
+export default function StrategyOptionsView({ options, personas = [] }: StrategyOptionsViewProps) {
   const getOptionColor = (optionType: StrategyOption['option_type']) => {
     switch (optionType) {
       case 'A':
@@ -107,18 +108,19 @@ export default function StrategyOptionsView({ options }: StrategyOptionsViewProp
               </div>
             )}
 
-            {/* ペルソナ別のリスク感 */}
+            {/* ペルソナ別のリスク感（分岐表示） */}
             {option.persona_risk_assessment && option.persona_risk_assessment.length > 0 && (
               <div className="p-3 bg-white rounded border">
-                <div className="text-sm font-medium text-gray-700 mb-2">ペルソナ別のリスク感</div>
-                <div className="space-y-2">
+                <div className="text-sm font-medium text-gray-700 mb-3">ペルソナ別のリスク感</div>
+                <div className="space-y-3">
                   {option.persona_risk_assessment.map((assessment, idx) => {
+                    const persona = personas.find((p) => p.id === assessment.persona_id);
                     const riskColor =
                       assessment.risk_level === 'low'
-                        ? 'text-green-600'
+                        ? 'border-green-300 bg-green-50'
                         : assessment.risk_level === 'medium'
-                        ? 'text-yellow-600'
-                        : 'text-red-600';
+                        ? 'border-yellow-300 bg-yellow-50'
+                        : 'border-red-300 bg-red-50';
                     const riskLabel =
                       assessment.risk_level === 'low'
                         ? '低リスク'
@@ -127,12 +129,16 @@ export default function StrategyOptionsView({ options }: StrategyOptionsViewProp
                         : '高リスク';
 
                     return (
-                      <div key={idx} className="p-2 bg-gray-50 rounded">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-sm font-bold ${riskColor}`}>{riskLabel}</span>
-                          <span className="text-sm text-gray-800">ペルソナID: {assessment.persona_id}</span>
+                      <div key={idx} className={`p-3 rounded border ${riskColor}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`text-sm font-bold ${riskColor.includes('green') ? 'text-green-700' : riskColor.includes('yellow') ? 'text-yellow-700' : 'text-red-700'}`}>
+                            {riskLabel}
+                          </span>
+                          <span className="text-sm font-medium text-gray-800">
+                            {persona ? persona.name : `ペルソナID: ${assessment.persona_id}`}
+                          </span>
                         </div>
-                        <div className="text-xs text-gray-600">{assessment.reasoning}</div>
+                        <div className="text-xs text-gray-700">{assessment.reasoning}</div>
                       </div>
                     );
                   })}

@@ -9,12 +9,18 @@ import MarketInsightView from '@/components/MarketInsightView';
 import StrategyOptionsView from '@/components/StrategyOptionsView';
 import PlanningHooksView from '@/components/PlanningHooksView';
 import PersonaView from '@/components/PersonaView';
-import { Extraction, Aggregation } from '@/types/schema';
+import { Extraction, Aggregation, Persona, MarketInsight, StrategyOption, PlanningHook } from '@/types/schema';
 import {
   generateDummyExtraction,
   generateDummyAggregation,
   generateFullInsights,
 } from '@/lib/dummy-data';
+import {
+  generateDemoExtractions,
+  generateDemoPersonas,
+  generateDemoMarketInsights,
+} from '@/lib/demo-data';
+import { generateStrategyOptions, generatePlanningHooks } from '@/lib/insights';
 import { getImageSize } from '@/lib/image-utils';
 
 interface Banner {
@@ -39,6 +45,7 @@ export default function Home() {
   >('analysis');
   const [highlightedBannerIds, setHighlightedBannerIds] = useState<Set<string>>(new Set());
   const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
+  const [demoMode, setDemoMode] = useState<boolean>(false);
 
   const handleUpload = useCallback(async (files: File[]) => {
     const newBanners: Banner[] = await Promise.all(
@@ -69,9 +76,64 @@ export default function Home() {
 
   const selectedBanner = banners.find((b) => b.id === selectedId);
 
+  // デモモードのデータを生成
+  const [demoFullData, setDemoFullData] = useState<{
+    personas: Persona[];
+    marketInsights: MarketInsight[];
+    strategyOptions: StrategyOption[];
+    planningHooks: PlanningHook[];
+    aggregation: Aggregation;
+  } | null>(null);
+
+  const loadDemoData = useCallback(() => {
+    const demoExtractions = generateDemoExtractions();
+    const demoPersonas = generateDemoPersonas();
+    const demoAggregation = generateDummyAggregation(demoExtractions);
+    const demoMarketInsights = generateDemoMarketInsights(demoAggregation, demoPersonas);
+    const demoStrategyOptions = generateStrategyOptions(demoMarketInsights, demoAggregation, demoPersonas);
+    const demoPlanningHooks = generatePlanningHooks(demoStrategyOptions, demoMarketInsights, demoPersonas);
+
+    // デモ用のバナー画像URL（ダミー）
+    const demoBanners: Banner[] = demoExtractions.map((ext, idx) => ({
+      id: ext.banner_id,
+      imageUrl: `https://via.placeholder.com/800x600/4A90E2/FFFFFF?text=Demo+Banner+${idx + 1}`,
+      extraction: ext,
+      imageWidth: 800,
+      imageHeight: 600,
+    }));
+
+    setBanners(demoBanners);
+    if (demoBanners.length > 0) {
+      setSelectedId(demoBanners[0].id);
+    }
+    setDemoMode(true);
+
+    const data = {
+      personas: demoPersonas,
+      marketInsights: demoMarketInsights,
+      strategyOptions: demoStrategyOptions,
+      planningHooks: demoPlanningHooks,
+      aggregation: demoAggregation,
+    };
+    setDemoFullData(data);
+    return data;
+  }, []);
+
   // 集計データ（B）とC1, C2, Dを生成
-  const aggregation = banners.length > 0 ? generateDummyAggregation(banners.map((b) => b.extraction)) : null;
-  const fullInsights = aggregation && banners.length > 0
+  const aggregation = demoMode && demoFullData
+    ? demoFullData.aggregation
+    : banners.length > 0
+    ? generateDummyAggregation(banners.map((b) => b.extraction))
+    : null;
+  
+  const fullInsights = demoMode && demoFullData
+    ? {
+        personas: demoFullData.personas,
+        marketInsights: demoFullData.marketInsights,
+        strategyOptions: demoFullData.strategyOptions,
+        planningHooks: demoFullData.planningHooks,
+      }
+    : aggregation && banners.length > 0
     ? generateFullInsights(banners.map((b) => b.extraction), aggregation)
     : null;
 
@@ -99,13 +161,28 @@ export default function Home() {
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">競合バナー分析アプリ</h1>
         <div className="flex items-center gap-4">
-          {banners.length > 0 && (
+          {banners.length === 0 && (
             <button
-              onClick={handleExport}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              onClick={loadDemoData}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
-              エクスポート (A/B JSON)
+              デモデータを読み込む
             </button>
+          )}
+          {banners.length > 0 && (
+            <>
+              {demoMode && (
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
+                  デモモード
+                </span>
+              )}
+              <button
+                onClick={handleExport}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                エクスポート (A/B JSON)
+              </button>
+            </>
           )}
         </div>
       </header>
@@ -246,7 +323,10 @@ export default function Home() {
               ) : activeTab === 'strategy' && fullInsights ? (
                 <div className="h-full overflow-y-auto p-6">
                   <h2 className="text-xl font-bold mb-4">戦略オプション (Strategy Options C2)</h2>
-                  <StrategyOptionsView options={fullInsights.strategyOptions} />
+                  <StrategyOptionsView
+                    options={fullInsights.strategyOptions}
+                    personas={fullInsights.personas}
+                  />
                 </div>
               ) : activeTab === 'planning' && fullInsights ? (
                 <div className="h-full overflow-y-auto p-6">
