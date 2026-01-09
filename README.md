@@ -1,5 +1,35 @@
 # 競合バナー分析アプリ
 
+競合バナーを分析し、Market Insight、Strategy Options、Planning Hooksを生成するアプリケーション。
+
+## 機能
+
+- **画像アップロード**: 複数のバナー画像をアップロード
+- **自動解析**: LLM（OpenRouter.ai）を使用した画像解析とMarket Insight生成
+- **ダミーモード**: LLMを使用しないダミーデータモード
+- **企画サマリ**: 分析結果を1画面に集約してPDF/PNGエクスポート
+
+## LLM統合
+
+OpenRouter.aiのAPIキーを使用して、実際のLLM解析が可能です。
+
+詳細は [README_LLM_SETUP.md](./README_LLM_SETUP.md) を参照してください。
+
+### クイックセットアップ
+
+1. `.env.local` ファイルを作成
+2. OpenRouter.aiのAPIキーを設定:
+   ```bash
+   OPENROUTER_API_KEY=your_api_key_here
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   ```
+3. アプリを起動:
+   ```bash
+   npm run dev
+   ```
+4. ヘッダーの「LLM解析を使用」チェックボックスを有効化
+5. 画像をアップロードして解析開始
+
 競合バナーの構成要素・訴求・示唆を分析するアプリケーション
 
 ## 設計原則

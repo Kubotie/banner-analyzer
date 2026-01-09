@@ -196,6 +196,37 @@ export interface PlanningHook {
 }
 
 /**
+ * LPラフ（構成骨子）スキーマ定義
+ */
+export interface LPRough {
+  strategy_option: 'A' | 'B' | 'C';
+  sections: Array<{
+    section_name: string; // セクション名（例: "当たり前の提示"）
+    order: number; // 表示順序
+    purpose: string; // 解消する不安/前提（仮説表現）
+    include: string[]; // 入れるべき要素（仮説表現）
+    evidence_links: {
+      related_insights?: string[]; // 関連するMarket InsightのID
+      related_persona_ids?: string[]; // 関連するPersonaのID
+      related_quotes?: string[]; // 関連するQuoteのID（任意）
+    };
+  }>;
+  cautions: Array<{
+    point: string; // 誤解しやすいポイント（仮説表現）
+    condition: string; // 壊れる条件（仮説表現）
+    evidence_links: {
+      related_insights?: string[];
+      related_persona_ids?: string[];
+    };
+  }>;
+  planning_hooks: Array<{
+    question: string; // まだ決めるべき問い
+    context: string; // 背景・文脈
+    related_section_order?: number; // 関連するセクションの順序
+  }>;
+}
+
+/**
  * Insights (C) スキーマ定義（後方互換性のため）
  * ※「勝てる」等の断定は禁止
  */

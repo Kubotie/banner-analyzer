@@ -10,7 +10,8 @@ import StrategyOptionsView from '@/components/StrategyOptionsView';
 import PlanningHooksView from '@/components/PlanningHooksView';
 import PersonaView from '@/components/PersonaView';
 import PlanningSummaryView from '@/components/PlanningSummaryView';
-import { Extraction, Aggregation, Persona, MarketInsight, StrategyOption, PlanningHook } from '@/types/schema';
+import LPRoughView from '@/components/LPRoughView';
+import { Extraction, Aggregation, Persona, MarketInsight, StrategyOption, PlanningHook, LPRough } from '@/types/schema';
 import {
   generateDummyExtraction,
   generateDummyAggregation,
@@ -21,7 +22,8 @@ import {
   generateDemoPersonas,
   generateDemoMarketInsights,
 } from '@/lib/demo-data';
-import { generateStrategyOptions, generatePlanningHooks } from '@/lib/insights';
+import { generateStrategyOptions, generatePlanningHooks, generateMarketInsights } from '@/lib/insights';
+import { generateDummyPersonas } from '@/lib/persona';
 import { getImageSize } from '@/lib/image-utils';
 
 interface Banner {
@@ -42,38 +44,90 @@ export default function Home() {
     brand?: string;
   }>({});
   const [activeTab, setActiveTab] = useState<
-    'analysis' | 'aggregation' | 'insight' | 'strategy' | 'planning' | 'persona' | 'summary'
+    'analysis' | 'aggregation' | 'insight' | 'strategy' | 'planning' | 'persona' | 'summary' | 'lp-rough'
   >('analysis');
   const [highlightedBannerIds, setHighlightedBannerIds] = useState<Set<string>>(new Set());
   const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
   const [demoMode, setDemoMode] = useState<boolean>(false);
+  const [useLLM, setUseLLM] = useState<boolean>(false); // LLMモードの切り替え
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false); // 解析中の状態
+  const [selectedStrategyOption, setSelectedStrategyOption] = useState<StrategyOption | null>(null); // 選択されたStrategy Option
+  const [lpRough, setLpRough] = useState<LPRough | null>(null); // 生成されたLPラフ
+  const [isGeneratingLPRough, setIsGeneratingLPRough] = useState<boolean>(false); // LPラフ生成中
 
   const handleUpload = useCallback(async (files: File[]) => {
-    const newBanners: Banner[] = await Promise.all(
-      files.map(async (file, index) => {
-        const imageUrl = URL.createObjectURL(file);
-        const bannerId = `banner_${Date.now()}_${index}`;
-        
-        // 画像サイズを取得
-        const { width, height } = await getImageSize(imageUrl);
+    setIsAnalyzing(true);
+    
+    try {
+      const newBanners: Banner[] = await Promise.all(
+        files.map(async (file, index) => {
+          const imageUrl = URL.createObjectURL(file);
+          const bannerId = `banner_${Date.now()}_${index}`;
+          
+          // 画像サイズを取得
+          const { width, height } = await getImageSize(imageUrl);
 
-        const extraction = generateDummyExtraction(bannerId, imageUrl);
+          let extraction: Extraction;
 
-        return {
-          id: bannerId,
-          imageUrl,
-          extraction,
-          imageWidth: width,
-          imageHeight: height,
-        };
-      })
-    );
+          if (useLLM) {
+            // LLM APIを呼び出して解析
+            try {
+              // 画像をbase64に変換（簡易実装：実際にはより適切な方法を推奨）
+              const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const result = reader.result as string;
+                  resolve(result);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+              });
 
-    setBanners((prev) => [...prev, ...newBanners]);
-    if (newBanners.length > 0 && !selectedId) {
-      setSelectedId(newBanners[0].id);
+              const response = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  imageUrl: base64, // base64文字列を渡す
+                  bannerId,
+                }),
+              });
+
+              if (!response.ok) {
+                throw new Error(`Analysis failed: ${response.statusText}`);
+              }
+
+              const data = await response.json();
+              extraction = data.extraction;
+            } catch (error) {
+              console.error('LLM analysis failed, falling back to dummy data:', error);
+              // エラー時はダミーデータにフォールバック
+              extraction = generateDummyExtraction(bannerId, imageUrl);
+            }
+          } else {
+            // ダミーデータを使用
+            extraction = generateDummyExtraction(bannerId, imageUrl);
+          }
+
+          return {
+            id: bannerId,
+            imageUrl,
+            extraction,
+            imageWidth: width,
+            imageHeight: height,
+          };
+        })
+      );
+
+      setBanners((prev) => [...prev, ...newBanners]);
+      if (newBanners.length > 0 && !selectedId) {
+        setSelectedId(newBanners[0].id);
+      }
+    } finally {
+      setIsAnalyzing(false);
     }
-  }, [selectedId]);
+  }, [selectedId, useLLM]);
 
   const selectedBanner = banners.find((b) => b.id === selectedId);
 
@@ -127,6 +181,43 @@ export default function Home() {
     ? generateDummyAggregation(banners.map((b) => b.extraction))
     : null;
   
+  // Market Insight生成（LLMモードの場合）
+  const [llmMarketInsights, setLlmMarketInsights] = useState<MarketInsight[] | null>(null);
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState<boolean>(false);
+
+  const generateInsightsWithLLM = useCallback(async () => {
+    if (!aggregation || banners.length === 0) return;
+
+    setIsGeneratingInsights(true);
+    try {
+      const personas = generateDummyPersonas();
+      const response = await fetch('/api/generate-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          aggregation,
+          extractions: banners.map((b) => b.extraction),
+          personas,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Insight generation failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setLlmMarketInsights(data.marketInsights);
+    } catch (error) {
+      console.error('LLM insight generation failed:', error);
+      // エラー時は従来の方法にフォールバック
+      setLlmMarketInsights(null);
+    } finally {
+      setIsGeneratingInsights(false);
+    }
+  }, [aggregation, banners]);
+
   const fullInsights = demoMode && demoFullData
     ? {
         personas: demoFullData.personas,
@@ -135,7 +226,20 @@ export default function Home() {
         planningHooks: demoFullData.planningHooks,
       }
     : aggregation && banners.length > 0
-    ? generateFullInsights(banners.map((b) => b.extraction), aggregation)
+    ? (() => {
+        const personas = generateDummyPersonas();
+        const marketInsights = useLLM && llmMarketInsights
+          ? llmMarketInsights
+          : generateMarketInsights(aggregation, banners.map((b) => b.extraction), personas);
+        const strategyOptions = generateStrategyOptions(marketInsights, aggregation, personas);
+        const planningHooks = generatePlanningHooks(strategyOptions, marketInsights, personas);
+        return {
+          personas,
+          marketInsights,
+          strategyOptions,
+          planningHooks,
+        };
+      })()
     : null;
 
   const handleExport = () => {
@@ -162,6 +266,16 @@ export default function Home() {
       <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">競合バナー分析アプリ</h1>
         <div className="flex items-center gap-4">
+          {/* LLMモード切り替え */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useLLM}
+              onChange={(e) => setUseLLM(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <span className="text-sm text-gray-700">LLM解析を使用</span>
+          </label>
           {banners.length === 0 && (
             <button
               onClick={loadDemoData}
@@ -169,6 +283,11 @@ export default function Home() {
             >
               デモデータを読み込む
             </button>
+          )}
+          {isAnalyzing && (
+            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded text-sm">
+              解析中...
+            </span>
           )}
           {banners.length > 0 && (
             <>
@@ -239,9 +358,16 @@ export default function Home() {
                     ? 'border-b-2 border-blue-500 text-blue-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
-                onClick={() => setActiveTab('insight')}
+                onClick={() => {
+                  setActiveTab('insight');
+                  // LLMモードでMarket Insightが未生成の場合、生成を開始
+                  if (useLLM && !llmMarketInsights && aggregation && banners.length > 0) {
+                    generateInsightsWithLLM();
+                  }
+                }}
               >
                 市場インサイト (C1)
+                {isGeneratingInsights && <span className="ml-2 text-xs">生成中...</span>}
               </button>
               <button
                 className={`px-4 py-3 font-medium transition-colors whitespace-nowrap ${
@@ -283,6 +409,18 @@ export default function Home() {
               >
                 企画サマリ
               </button>
+              {lpRough && (
+                <button
+                  className={`px-4 py-3 font-medium transition-colors whitespace-nowrap ${
+                    activeTab === 'lp-rough'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  onClick={() => setActiveTab('lp-rough')}
+                >
+                  LP構成ラフ
+                </button>
+              )}
             </div>
 
             {/* タブコンテンツ */}
@@ -340,12 +478,66 @@ export default function Home() {
                 />
               ) : activeTab === 'strategy' && fullInsights ? (
                 <div className="h-full overflow-y-auto p-6">
-                  <h2 className="text-xl font-bold mb-4">戦略オプション (Strategy Options C2)</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold">戦略オプション (Strategy Options C2)</h2>
+                    {selectedStrategyOption && (
+                      <button
+                        onClick={async () => {
+                          setIsGeneratingLPRough(true);
+                          try {
+                            const response = await fetch('/api/generate-lp-rough', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                strategyOption: selectedStrategyOption,
+                                marketInsights: fullInsights.marketInsights,
+                                personas: fullInsights.personas,
+                                useLLM,
+                              }),
+                            });
+
+                            if (!response.ok) {
+                              throw new Error(`LP Rough generation failed: ${response.statusText}`);
+                            }
+
+                            const data = await response.json();
+                            setLpRough(data.lpRough);
+                            setActiveTab('lp-rough');
+                          } catch (error) {
+                            console.error('LP Rough generation failed:', error);
+                            alert('LPラフの生成に失敗しました。');
+                          } finally {
+                            setIsGeneratingLPRough(false);
+                          }
+                        }}
+                        disabled={isGeneratingLPRough}
+                        className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:bg-gray-400"
+                      >
+                        {isGeneratingLPRough ? '生成中...' : 'LPラフを生成'}
+                      </button>
+                    )}
+                  </div>
                   <StrategyOptionsView
                     options={fullInsights.strategyOptions}
                     personas={fullInsights.personas}
+                    onSelectOption={setSelectedStrategyOption}
                   />
                 </div>
+              ) : activeTab === 'lp-rough' && lpRough && fullInsights ? (
+                <LPRoughView
+                  lpRough={lpRough}
+                  marketInsights={fullInsights.marketInsights}
+                  personas={fullInsights.personas}
+                  onNavigateToInsight={(insightIndex) => {
+                    setSelectedInsightIndex(insightIndex);
+                    setActiveTab('insight');
+                  }}
+                  onNavigateToPersona={(personaId) => {
+                    setActiveTab('persona');
+                  }}
+                />
               ) : activeTab === 'planning' && fullInsights ? (
                 <div className="h-full overflow-y-auto p-6">
                   <h2 className="text-xl font-bold mb-4">企画フック (Planning Hooks D)</h2>

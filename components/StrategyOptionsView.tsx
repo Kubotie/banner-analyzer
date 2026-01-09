@@ -5,9 +5,10 @@ import { StrategyOption, Persona } from '@/types/schema';
 interface StrategyOptionsViewProps {
   options: StrategyOption[];
   personas?: Persona[];
+  onSelectOption?: (option: StrategyOption) => void;
 }
 
-export default function StrategyOptionsView({ options, personas = [] }: StrategyOptionsViewProps) {
+export default function StrategyOptionsView({ options, personas = [], onSelectOption }: StrategyOptionsViewProps) {
   const getOptionColor = (optionType: StrategyOption['option_type']) => {
     switch (optionType) {
       case 'A':
@@ -29,7 +30,10 @@ export default function StrategyOptionsView({ options, personas = [] }: Strategy
         options.map((option, idx) => (
           <div
             key={idx}
-            className={`border-2 rounded-lg p-6 ${getOptionColor(option.option_type)}`}
+            className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
+              onSelectOption ? 'hover:shadow-lg' : ''
+            } ${getOptionColor(option.option_type)}`}
+            onClick={() => onSelectOption?.(option)}
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="text-2xl font-bold">Option {option.option_type}</div>
