@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '競合バナー分析アプリ',
-  description: '競合バナーの構成要素・訴求・示唆を分析',
+  title: 'マーケティングAI',
+  description: 'マーケティング企画をAIで支援するプラットフォーム',
 }
 
 export default function RootLayout({
@@ -12,8 +12,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ja">
-      <body>{children}</body>
+    <html lang="ja" className="h-full">
+      <body className="h-full m-0">{children}</body>
     </html>
   )
 }

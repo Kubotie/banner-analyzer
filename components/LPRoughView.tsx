@@ -9,6 +9,7 @@ interface LPRoughViewProps {
   personas: Persona[];
   onNavigateToInsight?: (insightIndex: number) => void;
   onNavigateToPersona?: (personaId: string) => void;
+  onSave?: (lpRough: LPRough) => void; // 「このプランを保存」コールバック
 }
 
 export default function LPRoughView({
@@ -17,6 +18,7 @@ export default function LPRoughView({
   personas,
   onNavigateToInsight,
   onNavigateToPersona,
+  onSave,
 }: LPRoughViewProps) {
   const [selectedSectionOrder, setSelectedSectionOrder] = useState<number | null>(null);
   const [sectionOrder, setSectionOrder] = useState<number[]>(
@@ -81,6 +83,14 @@ export default function LPRoughView({
         <h2 className="text-xl font-bold">
           LP構成ラフ（{lpRough.strategy_option === 'A' ? '同調' : lpRough.strategy_option === 'B' ? '部分的にずらす' : 'あえて外す'}）
         </h2>
+        {onSave && (
+          <button
+            onClick={() => onSave(lpRough)}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+          >
+            このプランを保存
+          </button>
+        )}
         <button
           onClick={handleExportMarkdown}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"

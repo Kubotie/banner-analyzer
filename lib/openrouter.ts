@@ -6,7 +6,13 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 export interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: string | Array<{
+    type: 'text' | 'image_url';
+    text?: string;
+    image_url?: {
+      url: string;
+    };
+  }>;
 }
 
 export interface OpenRouterResponse {
@@ -36,7 +42,8 @@ export async function callOpenRouter(
   const apiKey = process.env.OPENROUTER_API_KEY;
   
   if (!apiKey) {
-    throw new Error('OPENROUTER_API_KEY環境変数が設定されていません');
+    const errorMessage = 'OPENROUTER_API_KEY環境変数が設定されていません。\n\n設定方法:\n1. プロジェクトルートに .env.local ファイルを作成\n2. 以下を記入:\n   OPENROUTER_API_KEY=your_api_key_here\n\n3. 開発サーバーを再起動\n\n詳細は README_LLM_SETUP.md を参照してください。';
+    throw new Error(errorMessage);
   }
 
   let lastError: Error | null = null;
@@ -49,11 +56,14 @@ export async function callOpenRouter(
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
           'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-          'X-Title': '競合バナー分析アプリ',
+          'X-Title': 'Banner Analyzer',
         },
         body: JSON.stringify({
           model,
-          messages,
+          messages: messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content, // string または配列（Vision API対応）
+          })),
           temperature,
         }),
       });

@@ -6,11 +6,21 @@ import {
   generatePlanningHooks,
 } from './insights';
 import { generateDummyPersonas } from './persona';
+import { normalizeExtractionBboxes } from './bbox-normalize';
 
 /**
  * ダミーデータ生成用
+ * @param bannerId - バナーID
+ * @param imageUrl - 画像URL
+ * @param imageWidth - 画像の幅（ピクセル、デフォルト: 800）
+ * @param imageHeight - 画像の高さ（ピクセル、デフォルト: 600）
  */
-export function generateDummyExtraction(bannerId: string, imageUrl: string): Extraction {
+export function generateDummyExtraction(
+  bannerId: string, 
+  imageUrl: string,
+  imageWidth: number = 800,
+  imageHeight: number = 600
+): Extraction {
   // バナーIDからバリエーションを生成（より多様なデータを生成）
   const index = parseInt(bannerId.split('_').pop() || '0', 10);
   const brandIndex = index % 3;
@@ -19,7 +29,7 @@ export function generateDummyExtraction(bannerId: string, imageUrl: string): Ext
   const brands = ['ブランドA', 'ブランドB', null];
   const channels = ['Facebook', 'Instagram', null];
 
-  // パターンに応じて異なる構成を生成
+  // パターンに応じて異なる構成を生成（px座標で定義）
   const patterns = [
     // パターン1: 価格訴求中心
     {
@@ -94,12 +104,16 @@ export function generateDummyExtraction(bannerId: string, imageUrl: string): Ext
     }
   })();
 
-  return {
+  // px座標のBBoxを含むExtractionを作成
+  const extractionWithPixelBboxes: Extraction = {
     banner_id: bannerId,
     brand: brands[brandIndex] || null,
     channel: channels[index % 3] || null,
     format: '静止画',
-    components: pattern.components,
+    components: pattern.components.map((comp) => ({
+      ...comp,
+      source: 'manual' as const, // ダミーは必ずmanual扱い
+    })),
     appeal_axes: pattern.appeal_axes,
     tone: pattern.tone,
     notes: pattern.notes,
@@ -107,6 +121,18 @@ export function generateDummyExtraction(bannerId: string, imageUrl: string): Ext
     selected_reason_hypothesis: selectedReasonHypothesis,
     avoided_expressions_hypothesis: avoidedExpressionsHypothesis,
   };
+
+  // BBoxを正規化座標（0..1）に変換
+  const normalized = normalizeExtractionBboxes(extractionWithPixelBboxes, imageWidth, imageHeight);
+  
+  // source: 'manual' を確実に保持（normalizeExtractionBboxesで失われないように）
+  return {
+    ...normalized,
+    components: normalized.components.map((comp) => ({
+      ...comp,
+      source: (comp as any).source || 'manual' as const, // 未定義ならmanualに補正
+    })),
+  } as Extraction;
 }
 
 export function generateDummyAggregation(extractions: Extraction[]): Aggregation {

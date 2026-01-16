@@ -1,9 +1,37 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Extraction } from '@/types/schema';
 
+/**
+ * レイアウト状態バッジ（非同期で取得）
+ */
+function LayoutStatusBadge({ imageAssetId }: { imageAssetId: string }) {
+  const [hasLayout, setHasLayout] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    try {
+      const { getImageAsset } = require('@/lib/image-asset-db');
+      const asset = getImageAsset(imageAssetId);
+      setHasLayout(asset?.hasManualLayout || false);
+    } catch (e) {
+      setHasLayout(false);
+    }
+  }, [imageAssetId]);
+
+  if (hasLayout === null || !hasLayout) return null;
+
+  return (
+    <div className="mt-1">
+      <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">
+        レイアウトあり
+      </span>
+    </div>
+  );
+}
+
 interface ImageListProps {
-  banners: Array<{ id: string; imageUrl: string; extraction: Extraction }>;
+  banners: Array<{ id: string; imageUrl: string; extraction: Extraction; imageAssetId?: string }>;
   selectedId: string | null;
   onSelect: (id: string) => void;
   filters: {
@@ -12,6 +40,9 @@ interface ImageListProps {
   };
   onFilterChange: (filters: { appealAxis?: string; component?: string }) => void;
   highlightedBannerIds?: Set<string>;
+  ocrStatus?: Record<string, 'idle' | 'processing' | 'completed' | 'error'>;
+  ocrError?: Record<string, string>;
+  onRetryOCR?: (bannerId: string) => void;
 }
 
 export default function ImageList({
@@ -21,6 +52,9 @@ export default function ImageList({
   filters,
   onFilterChange,
   highlightedBannerIds = new Set(),
+  ocrStatus = {},
+  ocrError = {},
+  onRetryOCR,
 }: ImageListProps) {
   // フィルタリング
   const filteredBanners = banners.filter((banner) => {
@@ -111,6 +145,38 @@ export default function ImageList({
                 <div className="font-medium truncate">{banner.id}</div>
                 {banner.extraction.brand && (
                   <div className="text-gray-600">{banner.extraction.brand}</div>
+                )}
+                {/* レイアウト状態表示（imageAssetIdがある場合のみ） */}
+                {banner.imageAssetId && (
+                  <LayoutStatusBadge imageAssetId={banner.imageAssetId} />
+                )}
+                {/* OCRステータス表示 */}
+                {ocrStatus[banner.id] === 'processing' && (
+                  <div className="mt-1 flex items-center gap-1 text-blue-600">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                    <span>OCR解析中...</span>
+                  </div>
+                )}
+                {ocrStatus[banner.id] === 'completed' && (
+                  <div className="mt-1 text-green-600">✓ OCR完了</div>
+                )}
+                {ocrStatus[banner.id] === 'error' && (
+                  <div className="mt-1">
+                    <div className="text-red-600 text-xs" title={ocrError[banner.id]}>
+                      ⚠ {ocrError[banner.id] || 'OCR失敗'}
+                    </div>
+                    {onRetryOCR && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRetryOCR(banner.id);
+                        }}
+                        className="mt-1 text-xs text-blue-600 hover:text-blue-800 underline"
+                      >
+                        再試行
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

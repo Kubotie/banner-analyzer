@@ -33,11 +33,19 @@ export interface BBox {
   h: number; // 高さ
 }
 
+// コンポーネントソース
+export type ComponentSource = "manual" | "ocr" | "auto";
+
 // コンポーネント（要素）
 export interface Component {
-  type: string; // "商品画像" | "人物" | "ロゴ" | "価格" | "CTA" | "バッジ" | "レビュー" | "保証" | "期間限定" 等
+  id?: string; // 一意ID（新形式では必須推奨）
+  type: string; // 旧形式互換用（日本語ラベル）
+  typeKey?: string; // 新形式：BBoxTypeKey（必須推奨）
+  typeLabel?: string; // 新形式：UI表示用ラベル
   text: string | null; // 画像内テキスト（なければnull）
-  bbox: BBox; // 根拠として必須
+  bbox: BBox & { coord?: "normalized" | "pixel" }; // 根拠として必須、coord追加
+  source?: ComponentSource; // データソース（enum化）
+  confidence?: number; // auto/ocr用の信頼度（0..1）
 }
 
 // 訴求軸（根拠テキスト+bbox必須）
@@ -247,4 +255,88 @@ export interface DifferentiationOpportunity {
 export interface Insights {
   overlaps: Overlap[]; // 被り（よくある構成）
   differentiation_opportunities: DifferentiationOpportunity[]; // 差別化余地
+}
+
+/**
+ * ナレッジベース（KB）スキーマ定義
+ */
+export interface KnowledgeBase {
+  id: string; // KB-Banner-###, KB-Insight-###, KB-Report-###
+  name: string; // ナレッジ名
+  type: 'banner' | 'insight' | 'report'; // 種別
+  owner: string; // オーナー（デフォルト: 'user'）
+  shared: boolean; // 共有状態
+  folder_path: string; // フォルダ階層（例: 'My Files/Banners'）
+  created_at: string; // ISO 8601形式
+  updated_at: string; // ISO 8601形式
+  source_project_id?: string; // 元のプロジェクトID（任意）
+  data: KnowledgeBaseData; // 保存されたデータ
+}
+
+export type KnowledgeBaseData = KB_Banner | KB_Insight | KB_Report;
+
+/**
+ * KB-Banner（個別バナーのExtraction A）
+ */
+export interface KB_Banner {
+  type: 'banner';
+  banner_id: string;
+  extraction: Extraction;
+  image_url?: string; // 画像URL（任意、base64またはURL）
+}
+
+/**
+ * KB-Insight（Market Insightカード）
+ */
+export interface KB_Insight {
+  type: 'insight';
+  insight_id: string;
+  title: string;
+  // 人の前提
+  persona_premise: {
+    assumption: string; // 人の前提（仮説表現）
+    evidence: string; // 根拠（観測事実は断定OK）
+  };
+  // 観測事実（出現率など数値、断定OK）
+  observed_facts: {
+    choice: string; // 観測された競合の選択（事実）
+    evidence: string; // 根拠（出現率など数値、断定OK）
+    bbox_references?: Array<{ banner_id: string; bbox: BBox }>; // 対象BBox参照
+  };
+  // 合理性仮説（仮説表現のみ）
+  rationale_hypothesis: string;
+  // 市場制約（外すとリスクになりそうな前提、仮説表現）
+  market_constraints: string;
+  // Planning Hooks（問いのみ）
+  planning_hooks: Array<{
+    question: string;
+    context: string;
+    related_persona_ids?: string[];
+  }>;
+  // 根拠リンク
+  evidence_links: {
+    target_banner_ids: string[]; // 対象バナーID
+    target_bboxes?: Array<{ banner_id: string; bbox: BBox }>; // 対象BBox参照
+  };
+  // メタデータ
+  category: 'high_frequency' | 'low_frequency' | 'combination' | 'brand_difference';
+  persona_relevance?: PersonaRelevance[]; // Persona Overlay（任意）
+  created_at: string;
+  updated_at: string;
+  source_project_id?: string;
+}
+
+/**
+ * KB-Report（Aggregation集計レポート）
+ */
+export interface KB_Report {
+  type: 'report';
+  report_id: string;
+  title: string;
+  aggregation: Aggregation;
+  // メタデータ
+  total_banners: number;
+  created_at: string;
+  updated_at: string;
+  source_project_id?: string;
 }

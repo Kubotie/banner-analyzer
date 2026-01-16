@@ -3,12 +3,14 @@
 import { useRef } from 'react';
 import { Persona, MarketInsight, StrategyOption, PlanningHook } from '@/types/schema';
 import ExportButton from './ExportButton';
+import { Save } from 'lucide-react';
 
 interface PlanningSummaryViewProps {
   personas: Persona[];
   marketInsights: MarketInsight[];
   strategyOptions: StrategyOption[];
   planningHooks: PlanningHook[];
+  onSaveSummary?: () => void;
 }
 
 export default function PlanningSummaryView({
@@ -16,6 +18,7 @@ export default function PlanningSummaryView({
   marketInsights,
   strategyOptions,
   planningHooks,
+  onSaveSummary,
 }: PlanningSummaryViewProps) {
   const summaryRef = useRef<HTMLDivElement>(null);
 
@@ -126,7 +129,18 @@ export default function PlanningSummaryView({
       <div className="sticky top-0 z-10 bg-white border-b p-4 mb-4 -mx-6 -mt-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold">企画サマリ</h1>
-          <ExportButton onExportPNG={handleExportPNG} onExportPDF={handleExportPDF} />
+          <div className="flex items-center gap-2">
+            {onSaveSummary && (
+              <button
+                onClick={onSaveSummary}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                ナレッジベースに保存
+              </button>
+            )}
+            <ExportButton onExportPNG={handleExportPNG} onExportPDF={handleExportPDF} />
+          </div>
         </div>
       </div>
 

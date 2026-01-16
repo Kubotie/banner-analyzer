@@ -10,12 +10,14 @@ interface AggregationViewProps {
     brand?: string;
   };
   onFilterChange: (filters: { appealAxis?: string; component?: string; brand?: string }) => void;
+  onSave?: () => void; // 「この集計を保存」コールバック
 }
 
 export default function AggregationView({
   aggregation,
   filters,
   onFilterChange,
+  onSave,
 }: AggregationViewProps) {
   // フィルタリング
   const filteredComponentFrequencies = aggregation.component_frequencies.filter((cf) => {
@@ -37,6 +39,18 @@ export default function AggregationView({
 
   return (
     <div className="space-y-6">
+      {/* 保存ボタン（ヘッダーは親コンポーネントで表示） */}
+      {onSave && (
+        <div className="flex justify-end">
+          <button
+            onClick={onSave}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+          >
+            この集計を保存
+          </button>
+        </div>
+      )}
+
       {/* フィルタ */}
       <div className="bg-white rounded-lg border p-4">
         <h3 className="text-lg font-semibold mb-3">フィルタ</h3>

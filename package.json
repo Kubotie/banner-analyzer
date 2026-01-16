@@ -1,25 +1,35 @@
 {
-  "name": "banner-analyzer",
+  "name": "marketing_ai",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0",
+    "dev": "next dev -H 0.0.0.0 -p 3010",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "next lint"
   },
   "dependencies": {
+    "@uiw/react-json-view": "^2.0.0-alpha.40",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.2",
+    "lucide-react": "^0.294.0",
+    "mermaid": "^11.12.2",
     "next": "^14.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "react-dropzone": "^14.2.3"
+    "react-dropzone": "^14.2.3",
+    "react-markdown": "^10.1.0",
+    "sharp": "^0.33.0",
+    "tesseract.js": "^7.0.0",
+    "uuid": "^9.0.1",
+    "zod": "^3.25.76",
+    "zustand": "^4.4.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
